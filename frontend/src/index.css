@@ -189,6 +189,11 @@ body {
 }
 
 /* Loading State */
+.loading {
+  text-align: center;
+  padding: 4rem;
+  font-size: 1.2rem;
+  color: var(--text-muted);
 }
 
 /* Watchlist Button */
