@@ -189,9 +189,28 @@ body {
 }
 
 /* Loading State */
-.loading {
-  text-align: center;
-  padding: 4rem;
-  font-size: 1.2rem;
-  color: var(--text-muted);
+}
+
+/* Watchlist Button */
+.watchlist-btn {
+  margin-top: 10px;
+  background-color: transparent;
+  color: var(--text);
+  border: 1px solid var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.watchlist-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.watchlist-btn.active {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: white;
 }

@@ -40,6 +40,24 @@ def get_bollywood(request):
     return Response(top_hindi)
 
 @api_view(['GET'])
+def get_action(request):
+    if raw_movies.empty: return Response([])
+    action_movies = raw_movies[raw_movies['genres'].str.contains('Action', na=False)]
+    return Response(action_movies.head(20)[['id', 'title']].rename(columns={'id': 'movie_id'}).to_dict('records'))
+
+@api_view(['GET'])
+def get_scifi(request):
+    if raw_movies.empty: return Response([])
+    scifi_movies = raw_movies[raw_movies['genres'].str.contains('Science Fiction', na=False)]
+    return Response(scifi_movies.head(20)[['id', 'title']].rename(columns={'id': 'movie_id'}).to_dict('records'))
+
+@api_view(['GET'])
+def get_comedy(request):
+    if raw_movies.empty: return Response([])
+    comedy_movies = raw_movies[raw_movies['genres'].str.contains('Comedy', na=False)]
+    return Response(comedy_movies.head(20)[['id', 'title']].rename(columns={'id': 'movie_id'}).to_dict('records'))
+
+@api_view(['GET'])
 def recommend(request):
     """Recommends 5 movies based on a given movie title using Cosine Similarity."""
     movie_title = request.GET.get('title')
@@ -80,21 +98,33 @@ def mood_search(request):
     if not query:
         return Response({'error': 'Please provide a search query.'}, status=400)
     
-    # We will score each movie based on how many words from the user query appear in its tags
-    def score_movie(tags):
+    # HYBRID SEARCH: Check for exact/partial Title match first
+    # If the user typed a movie name (e.g. "krrish" or "avatar"), it gets a massive bonus score
+    def score_movie(row):
         score = 0
+        movie_title = str(row['title']).lower()
+        query_str = " ".join(query)
+        
+        # Title match (Highest Priority)
+        if query_str == movie_title:
+            score += 100
+        elif query_str in movie_title:
+            score += 50
+            
+        # NLP Tags match (Mood)
         for word in query:
-            if word in tags:
+            if word in str(row['tags']):
                 score += 1
+                
         return score
         
-    movies['mood_score'] = movies['tags'].apply(score_movie)
+    movies['mood_score'] = movies.apply(score_movie, axis=1)
     
     # Sort movies by score (descending) and get the ones with a score > 0
     best_matches = movies[movies['mood_score'] > 0].sort_values(by='mood_score', ascending=False)
     
     results = []
-    for _, row in best_matches.head(10).iterrows():
+    for _, row in best_matches.head(15).iterrows():
         results.append({
             'movie_id': int(row['movie_id']),
             'title': row['title'],

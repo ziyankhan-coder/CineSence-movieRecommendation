@@ -12,28 +12,52 @@ import MovieCard from '../components/MovieCard';
 function Home() {
   const [movies, setMovies] = useState([]);
   const [bollywood, setBollywood] = useState([]);
+  const [actionMovies, setActionMovies] = useState([]);
+  const [scifiMovies, setScifiMovies] = useState([]);
+  const [comedyMovies, setComedyMovies] = useState([]);
+  const [watchlist, setWatchlist] = useState([]);
+  
   const [recommendations, setRecommendations] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Fetch initial movies when page loads
   useEffect(() => {
-    axios.get('http://127.0.0.1:8000/api/movies/')
-      .then(response => {
-        setMovies(response.data);
-        setLoading(false);
-      })
-      .catch(error => {
-        console.error("Error fetching movies:", error);
-        setLoading(false);
-      });
+    // Load Watchlist from Local Storage
+    const savedWatchlist = JSON.parse(localStorage.getItem('cinesense_watchlist')) || [];
+    setWatchlist(savedWatchlist);
 
-    axios.get('http://127.0.0.1:8000/api/bollywood/')
-      .then(response => {
-        setBollywood(response.data);
-      })
-      .catch(error => console.error("Error fetching bollywood:", error));
+    // Fetch All Categories
+    Promise.all([
+      axios.get('http://127.0.0.1:8000/api/movies/'),
+      axios.get('http://127.0.0.1:8000/api/bollywood/'),
+      axios.get('http://127.0.0.1:8000/api/action/'),
+      axios.get('http://127.0.0.1:8000/api/scifi/'),
+      axios.get('http://127.0.0.1:8000/api/comedy/')
+    ]).then(([resMovies, resBolly, resAction, resScifi, resComedy]) => {
+      setMovies(resMovies.data);
+      setBollywood(resBolly.data);
+      setActionMovies(resAction.data);
+      setScifiMovies(resScifi.data);
+      setComedyMovies(resComedy.data);
+      setLoading(false);
+    }).catch(error => {
+      console.error("Error fetching data:", error);
+      setLoading(false);
+    });
   }, []);
+
+  const toggleWatchlist = (movie) => {
+    const isWatchlisted = watchlist.some(m => m.movie_id === movie.movie_id);
+    let updatedWatchlist;
+    if (isWatchlisted) {
+      updatedWatchlist = watchlist.filter(m => m.movie_id !== movie.movie_id);
+    } else {
+      updatedWatchlist = [...watchlist, movie];
+    }
+    setWatchlist(updatedWatchlist);
+    localStorage.setItem('cinesense_watchlist', JSON.stringify(updatedWatchlist));
+  };
 
   // Fetch recommendations when a user clicks a movie
   const handleMovieClick = (movie) => {
@@ -70,7 +94,7 @@ function Home() {
           <div className="movie-grid">
             {recommendations.length > 0 ? (
               recommendations.map((rec) => (
-                <MovieCard key={rec.movie_id} movie={rec} onClick={handleMovieClick} />
+                <MovieCard key={rec.movie_id} movie={rec} onClick={handleMovieClick} isWatchlisted={watchlist.some(m => m.movie_id === rec.movie_id)} onToggleWatchlist={toggleWatchlist} />
               ))
             ) : (
               <p style={{ marginLeft: '4rem' }}>Calculating AI Recommendations...</p>
@@ -79,11 +103,23 @@ function Home() {
         </div>
       )}
 
+      {/* Show Watchlist */}
+      {watchlist.length > 0 && (
+        <>
+          <h2 className="section-title">My Watchlist 📌</h2>
+          <div className="movie-grid">
+            {watchlist.map((movie) => (
+              <MovieCard key={movie.movie_id} movie={movie} onClick={handleMovieClick} isWatchlisted={true} onToggleWatchlist={toggleWatchlist} />
+            ))}
+          </div>
+        </>
+      )}
+
       {/* Show Trending Movies */}
-      <h2 className="section-title">Trending Movies</h2>
+      <h2 className="section-title" style={{ marginTop: '2rem' }}>Trending Now</h2>
       <div className="movie-grid">
         {movies.map((movie) => (
-          <MovieCard key={movie.movie_id} movie={movie} onClick={handleMovieClick} />
+          <MovieCard key={movie.movie_id} movie={movie} onClick={handleMovieClick} isWatchlisted={watchlist.some(m => m.movie_id === movie.movie_id)} onToggleWatchlist={toggleWatchlist} />
         ))}
       </div>
 
@@ -91,7 +127,31 @@ function Home() {
       <h2 className="section-title" style={{ marginTop: '2rem' }}>Bollywood Hits 🇮🇳</h2>
       <div className="movie-grid">
         {bollywood.map((movie) => (
-          <MovieCard key={movie.movie_id} movie={movie} onClick={handleMovieClick} />
+          <MovieCard key={movie.movie_id} movie={movie} onClick={handleMovieClick} isWatchlisted={watchlist.some(m => m.movie_id === movie.movie_id)} onToggleWatchlist={toggleWatchlist} />
+        ))}
+      </div>
+
+      {/* Show Action Blockbusters */}
+      <h2 className="section-title" style={{ marginTop: '2rem' }}>Action Blockbusters 💥</h2>
+      <div className="movie-grid">
+        {actionMovies.map((movie) => (
+          <MovieCard key={movie.movie_id} movie={movie} onClick={handleMovieClick} isWatchlisted={watchlist.some(m => m.movie_id === movie.movie_id)} onToggleWatchlist={toggleWatchlist} />
+        ))}
+      </div>
+
+      {/* Show Sci-Fi Adventures */}
+      <h2 className="section-title" style={{ marginTop: '2rem' }}>Sci-Fi Adventures 🛸</h2>
+      <div className="movie-grid">
+        {scifiMovies.map((movie) => (
+          <MovieCard key={movie.movie_id} movie={movie} onClick={handleMovieClick} isWatchlisted={watchlist.some(m => m.movie_id === movie.movie_id)} onToggleWatchlist={toggleWatchlist} />
+        ))}
+      </div>
+
+      {/* Show Comedy Hits */}
+      <h2 className="section-title" style={{ marginTop: '2rem' }}>Comedy Hits 😂</h2>
+      <div className="movie-grid">
+        {comedyMovies.map((movie) => (
+          <MovieCard key={movie.movie_id} movie={movie} onClick={handleMovieClick} isWatchlisted={watchlist.some(m => m.movie_id === movie.movie_id)} onToggleWatchlist={toggleWatchlist} />
         ))}
       </div>
     </div>

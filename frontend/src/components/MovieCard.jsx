@@ -7,7 +7,7 @@ import axios from 'axios';
 // when the movie card loads. This connects our App to the outside world!
 // ----------------------------------------------------------------------
 
-function MovieCard({ movie, onClick }) {
+function MovieCard({ movie, onClick, isWatchlisted, onToggleWatchlist }) {
   const [posterUrl, setPosterUrl] = useState(null);
 
   useEffect(() => {
@@ -27,14 +27,27 @@ function MovieCard({ movie, onClick }) {
   }, [movie.title]);
 
   return (
-    <div className="movie-card" onClick={() => onClick(movie)}>
-      <div className="movie-poster" style={posterUrl ? { backgroundImage: `url(${posterUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+    <div className="movie-card">
+      <div className="movie-poster" onClick={() => onClick(movie)} style={posterUrl ? { backgroundImage: `url(${posterUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
         {!posterUrl && "🎬"}
       </div>
       <div className="movie-info">
-        <h3 className="movie-title">{movie.title}</h3>
+        <h3 className="movie-title" onClick={() => onClick(movie)}>{movie.title}</h3>
         {movie.match_score && (
           <p className="movie-score">Mood Match Score: {movie.match_score}</p>
+        )}
+        
+        {/* Watchlist Button */}
+        {onToggleWatchlist && (
+          <button 
+            className={`watchlist-btn ${isWatchlisted ? 'active' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleWatchlist(movie);
+            }}
+          >
+            {isWatchlisted ? '✓ In Watchlist' : '+ Add to Watchlist'}
+          </button>
         )}
       </div>
     </div>
