@@ -9,4 +9,12 @@ urlpatterns = [
     path('comedy/', views.get_comedy, name='get_comedy'),
     path('recommend/', views.recommend, name='recommend'),
     path('mood-search/', views.mood_search, name='mood_search'),
+    
+    # Auth endpoints
+    path('register/', views.register, name='register'),
+    path('login/', views.login, name='login'),
+    path('google-login/', views.google_login, name='google_login'),
+    
+    # Protected endpoints
+    path('watchlist/', views.handle_watchlist, name='watchlist'),
 ]

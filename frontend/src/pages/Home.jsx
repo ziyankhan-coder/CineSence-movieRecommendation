@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import MovieCard from '../components/MovieCard';
+import { AuthContext } from '../context/AuthContext';
 
 // ----------------------------------------------------------------------
 // EXPLANATION FOR INTERVIEW:
@@ -20,12 +21,19 @@ function Home() {
   const [recommendations, setRecommendations] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useContext(AuthContext);
 
   // Fetch initial movies when page loads
   useEffect(() => {
-    // Load Watchlist from Local Storage
-    const savedWatchlist = JSON.parse(localStorage.getItem('cinesense_watchlist')) || [];
-    setWatchlist(savedWatchlist);
+    // Load Watchlist
+    if (user) {
+      axios.get('http://127.0.0.1:8000/api/watchlist/')
+        .then(res => setWatchlist(res.data))
+        .catch(err => console.error("Error fetching watchlist:", err));
+    } else {
+      const savedWatchlist = JSON.parse(localStorage.getItem('cinesense_watchlist')) || [];
+      setWatchlist(savedWatchlist);
+    }
 
     // Fetch All Categories
     Promise.all([
@@ -45,18 +53,35 @@ function Home() {
       console.error("Error fetching data:", error);
       setLoading(false);
     });
-  }, []);
+  }, [user]);
 
-  const toggleWatchlist = (movie) => {
+  const toggleWatchlist = async (movie) => {
     const isWatchlisted = watchlist.some(m => m.movie_id === movie.movie_id);
     let updatedWatchlist;
+    
     if (isWatchlisted) {
       updatedWatchlist = watchlist.filter(m => m.movie_id !== movie.movie_id);
     } else {
       updatedWatchlist = [...watchlist, movie];
     }
+    
+    // Optimistic UI update
     setWatchlist(updatedWatchlist);
-    localStorage.setItem('cinesense_watchlist', JSON.stringify(updatedWatchlist));
+    
+    if (user) {
+      // Sync with Backend
+      try {
+        await axios.post('http://127.0.0.1:8000/api/watchlist/', {
+          movie_id: movie.movie_id,
+          title: movie.title
+        });
+      } catch (err) {
+        console.error("Failed to sync watchlist with backend", err);
+      }
+    } else {
+      // Save locally
+      localStorage.setItem('cinesense_watchlist', JSON.stringify(updatedWatchlist));
+    }
   };
 
   // Fetch recommendations when a user clicks a movie

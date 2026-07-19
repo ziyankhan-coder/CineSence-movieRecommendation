@@ -1,9 +1,16 @@
 import os
 import pickle
 import pandas as pd
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
+from rest_framework_simplejwt.tokens import RefreshToken
+from .models import UserProfile, Watchlist
 from django.conf import settings
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
 # Load models into memory when the server starts
 BASE_DIR = settings.BASE_DIR
@@ -15,9 +22,109 @@ try:
     print("AI Models loaded successfully!")
 except Exception as e:
     print(f"Error loading ML models: {e}")
-    movies = pd.DataFrame()
     similarity = []
     raw_movies = pd.DataFrame()
+
+# ==========================================
+# AUTHENTICATION ENDPOINTS
+# ==========================================
+
+@api_view(['POST'])
+def register(request):
+    data = request.data
+    try:
+        user = User.objects.create(
+            username=data['username'],
+            email=data['email'],
+            password=make_password(data['password'])
+        )
+        UserProfile.objects.create(user=user)
+        return Response({'message': 'User created successfully!'}, status=201)
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+
+@api_view(['POST'])
+def login(request):
+    data = request.data
+    try:
+        user = User.objects.get(username=data['username'])
+        if user.check_password(data['password']):
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'username': user.username,
+                'email': user.email
+            })
+        else:
+            return Response({'error': 'Invalid credentials'}, status=401)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=404)
+
+@api_view(['POST'])
+def google_login(request):
+    token = request.data.get('token')
+    if not token:
+        return Response({'error': 'No token provided'}, status=400)
+    
+    try:
+        # Validate the token with Google
+        idinfo = id_token.verify_oauth2_token(token, requests.Request())
+        email = idinfo['email']
+        name = idinfo.get('name', '')
+        
+        # We use email as the username for Google logins to ensure uniqueness
+        user, created = User.objects.get_or_create(username=email, defaults={'email': email})
+        
+        if created:
+            UserProfile.objects.create(user=user, avatar_url=idinfo.get('picture', ''))
+            
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'username': user.username,
+            'email': user.email
+        })
+    except ValueError:
+        return Response({'error': 'Invalid Google token'}, status=401)
+
+# ==========================================
+# WATCHLIST ENDPOINTS
+# ==========================================
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def handle_watchlist(request):
+    user = request.user
+    
+    if request.method == 'GET':
+        watchlist_items = Watchlist.objects.filter(user=user)
+        # Format it exactly like our movie cards expect
+        results = [{'movie_id': item.movie_id, 'title': item.movie_title} for item in watchlist_items]
+        return Response(results)
+        
+    if request.method == 'POST':
+        movie_id = request.data.get('movie_id')
+        movie_title = request.data.get('title')
+        
+        if not movie_id or not movie_title:
+            return Response({'error': 'movie_id and title are required'}, status=400)
+            
+        # Check if already in watchlist
+        existing = Watchlist.objects.filter(user=user, movie_id=movie_id).first()
+        if existing:
+            # If it exists, POST acts as a toggle (remove it)
+            existing.delete()
+            return Response({'message': 'Removed from watchlist', 'added': False})
+        else:
+            # Add to watchlist
+            Watchlist.objects.create(user=user, movie_id=movie_id, movie_title=movie_title)
+            return Response({'message': 'Added to watchlist', 'added': True})
+
+# ==========================================
+# MOVIE ENDPOINTS
+# ==========================================
 
 @api_view(['GET'])
 def get_movies(request):
