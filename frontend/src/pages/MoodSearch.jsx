@@ -100,8 +100,7 @@ function MoodSearch() {
       {!loading && searched && (
         <>
           <h2 className="section-title">AI Matches for "{query}"</h2>
-          <div className="movie-grid">
-            {results.length > 0 ? (
+          {results.length > 0 ? (
             <div className="movie-grid">
               {results.map((movie) => (
                 <MovieCard 
@@ -113,9 +112,9 @@ function MoodSearch() {
                 />
               ))}
             </div>
-          ) : (  <p style={{ marginLeft: '4rem' }}>No perfect match found. Try different words!</p>
-            )}
-          </div>
+          ) : (
+            <p style={{ marginLeft: '5%', color: 'var(--text-muted)' }}>No perfect match found. Try different words!</p>
+          )}
         </>
       )}
       
