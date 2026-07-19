@@ -11,6 +11,7 @@ from .models import UserProfile, Watchlist
 from django.conf import settings
 from google.oauth2 import id_token
 from google.auth.transport import requests
+from youtubesearchpython import VideosSearch
 
 # Load models into memory when the server starts
 BASE_DIR = settings.BASE_DIR
@@ -145,6 +146,26 @@ def get_bollywood(request):
     hindi_movies = raw_movies[raw_movies['original_language'] == 'hi']
     top_hindi = hindi_movies.head(20)[['id', 'title']].rename(columns={'id': 'movie_id'}).to_dict('records')
     return Response(top_hindi)
+
+@api_view(['GET'])
+def get_trailer(request):
+    """Fetches the top YouTube trailer ID for a given movie title."""
+    title = request.GET.get('title')
+    if not title:
+        return Response({'error': 'Title parameter is required'}, status=400)
+    
+    try:
+        search_query = f"{title} official movie trailer"
+        videos_search = VideosSearch(search_query, limit=1)
+        result = videos_search.result()
+        
+        if result['result']:
+            video_id = result['result'][0]['id']
+            return Response({'video_id': video_id})
+        else:
+            return Response({'error': 'No trailer found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
 
 @api_view(['GET'])
 def get_action(request):

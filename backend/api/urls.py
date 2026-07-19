@@ -9,6 +9,7 @@ urlpatterns = [
     path('comedy/', views.get_comedy, name='get_comedy'),
     path('recommend/', views.recommend, name='recommend'),
     path('mood-search/', views.mood_search, name='mood_search'),
+    path('trailer/', views.get_trailer, name='get_trailer'),
     
     # Auth endpoints
     path('register/', views.register, name='register'),

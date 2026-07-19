@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import MovieCard from '../components/MovieCard';
+import TrailerModal from '../components/TrailerModal';
+import { AuthContext } from '../context/AuthContext';
 
 // ----------------------------------------------------------------------
 // EXPLANATION FOR INTERVIEW:
@@ -15,6 +17,13 @@ function MoodSearch() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [selectedTrailerMovie, setSelectedTrailerMovie] = useState(null);
+  
+  // Connect to auth context to handle watchlist
+  const { user } = useContext(AuthContext);
+  const [watchlist, setWatchlist] = useState(
+    JSON.parse(localStorage.getItem('cinesense_watchlist')) || []
+  );
 
   const handleSearch = () => {
     if (!query.trim()) return;
@@ -29,9 +38,38 @@ function MoodSearch() {
         setLoading(false);
       })
       .catch(error => {
-        console.error("Error with mood search:", error);
+        console.error("Error performing mood search:", error);
         setLoading(false);
       });
+  };
+
+  const handleMovieClick = (movie) => {
+    setSelectedTrailerMovie(movie);
+  };
+
+  const toggleWatchlist = async (movie) => {
+    const isWatchlisted = watchlist.some(m => m.movie_id === movie.movie_id);
+    let updatedWatchlist;
+    if (isWatchlisted) {
+      updatedWatchlist = watchlist.filter(m => m.movie_id !== movie.movie_id);
+    } else {
+      updatedWatchlist = [...watchlist, movie];
+    }
+    
+    setWatchlist(updatedWatchlist);
+    
+    if (user) {
+      try {
+        await axios.post('http://127.0.0.1:8000/api/watchlist/', {
+          movie_id: movie.movie_id,
+          title: movie.title
+        });
+      } catch (err) {
+        console.error("Failed to sync watchlist", err);
+      }
+    } else {
+      localStorage.setItem('cinesense_watchlist', JSON.stringify(updatedWatchlist));
+    }
   };
 
   return (
@@ -64,14 +102,28 @@ function MoodSearch() {
           <h2 className="section-title">AI Matches for "{query}"</h2>
           <div className="movie-grid">
             {results.length > 0 ? (
-              results.map((movie) => (
-                <MovieCard key={movie.movie_id} movie={movie} onClick={() => {}} />
-              ))
-            ) : (
-              <p style={{ marginLeft: '4rem' }}>No perfect match found. Try different words!</p>
+            <div className="movie-grid">
+              {results.map((movie) => (
+                <MovieCard 
+                  key={movie.movie_id} 
+                  movie={movie} 
+                  onClick={handleMovieClick}
+                  isWatchlisted={watchlist.some(m => m.movie_id === movie.movie_id)}
+                  onToggleWatchlist={toggleWatchlist} 
+                />
+              ))}
+            </div>
+          ) : (  <p style={{ marginLeft: '4rem' }}>No perfect match found. Try different words!</p>
             )}
           </div>
         </>
+      )}
+      
+      {selectedTrailerMovie && (
+        <TrailerModal 
+          movie={selectedTrailerMovie} 
+          onClose={() => setSelectedTrailerMovie(null)} 
+        />
       )}
     </div>
   );

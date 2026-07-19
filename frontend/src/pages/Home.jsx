@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import MovieCard from '../components/MovieCard';
+import TrailerModal from '../components/TrailerModal';
 import { AuthContext } from '../context/AuthContext';
 
 // ----------------------------------------------------------------------
@@ -20,6 +21,7 @@ function Home() {
   
   const [recommendations, setRecommendations] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
+  const [selectedTrailerMovie, setSelectedTrailerMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const { user } = useContext(AuthContext);
 
@@ -87,6 +89,7 @@ function Home() {
   // Fetch recommendations when a user clicks a movie
   const handleMovieClick = (movie) => {
     setSelectedMovie(movie);
+    setSelectedTrailerMovie(movie); // Opens the modal
     setRecommendations([]); // clear old recommendations
     
     // Call our Django ML API
@@ -179,6 +182,13 @@ function Home() {
           <MovieCard key={movie.movie_id} movie={movie} onClick={handleMovieClick} isWatchlisted={watchlist.some(m => m.movie_id === movie.movie_id)} onToggleWatchlist={toggleWatchlist} />
         ))}
       </div>
+      
+      {selectedTrailerMovie && (
+        <TrailerModal 
+          movie={selectedTrailerMovie} 
+          onClose={() => setSelectedTrailerMovie(null)} 
+        />
+      )}
     </div>
   );
 }
