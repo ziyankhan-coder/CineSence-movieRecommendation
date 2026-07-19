@@ -11,8 +11,9 @@ function MovieCard({ movie, onClick, isWatchlisted, onToggleWatchlist }) {
   const [posterUrl, setPosterUrl] = useState(null);
 
   useEffect(() => {
-    // We use environment variables so the key is not exposed on GitHub!
-    const OMDB_API_KEY = import.meta.env.VITE_OMDB_API_KEY;  
+    // We use environment variables for best practice, but provide the free public key as a fallback
+    // so that recruiters testing the app don't experience missing posters if they forget to add the key.
+    const OMDB_API_KEY = import.meta.env.VITE_OMDB_API_KEY || '38503190';  
     
     // Encode title so spaces become %20 for the URL
     const title = encodeURIComponent(movie.title);
