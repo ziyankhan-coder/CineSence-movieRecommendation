@@ -8,8 +8,8 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import React, { useContext } from 'react';
 import './index.css';
 
-// Google Client ID - The user needs to provide this!
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID_HERE";
+// Google Client ID - The user needs to provide this in frontend/.env!
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID_HERE";
 
 // ----------------------------------------------------------------------
 // EXPLANATION FOR INTERVIEW:

@@ -17,7 +17,7 @@ function MovieCard({ movie, onClick, isWatchlisted, onToggleWatchlist }) {
     // Encode title so spaces become %20 for the URL
     const title = encodeURIComponent(movie.title);
     
-    axios.get(`http://www.omdbapi.com/?t=${title}&apikey=${OMDB_API_KEY}`)
+    axios.get(`https://www.omdbapi.com/?t=${title}&apikey=${OMDB_API_KEY}`)
       .then(response => {
         if (response.data && response.data.Poster && response.data.Poster !== "N/A") {
           setPosterUrl(response.data.Poster);
