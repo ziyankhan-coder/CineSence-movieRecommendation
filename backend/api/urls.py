@@ -18,4 +18,5 @@ urlpatterns = [
     
     # Protected endpoints
     path('watchlist/', views.handle_watchlist, name='watchlist'),
+    path('reviews/<int:movie_id>/', views.handle_reviews, name='handle_reviews'),
 ]

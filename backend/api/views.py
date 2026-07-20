@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import UserProfile, Watchlist
+from .models import UserProfile, Watchlist, Review
 from django.conf import settings
 from google.oauth2 import id_token
 from google.auth.transport import requests
@@ -122,6 +122,73 @@ def handle_watchlist(request):
             # Add to watchlist
             Watchlist.objects.create(user=user, movie_id=movie_id, movie_title=movie_title)
             return Response({'message': 'Added to watchlist', 'added': True})
+
+# ==========================================
+# REVIEW ENDPOINTS
+# ==========================================
+
+@api_view(['GET', 'POST', 'DELETE'])
+def handle_reviews(request, movie_id):
+    if request.method == 'GET':
+        reviews = Review.objects.filter(movie_id=movie_id).order_by('-created_on')
+        # Calculate average rating
+        total = sum(r.rating for r in reviews)
+        avg = round(total / len(reviews), 1) if reviews else 0
+        
+        results = [{
+            'id': r.id,
+            'username': r.user.username,
+            'rating': r.rating,
+            'comment': r.comment,
+            'created_on': r.created_on.strftime('%b %d, %Y')
+        } for r in reviews]
+        
+        return Response({
+            'average_rating': avg,
+            'total_reviews': len(reviews),
+            'reviews': results
+        })
+        
+    # POST and DELETE require authentication
+    if not request.user.is_authenticated:
+        return Response({'error': 'Authentication required'}, status=401)
+        
+    user = request.user
+    
+    if request.method == 'POST':
+        rating = request.data.get('rating')
+        comment = request.data.get('comment', '')
+        movie_title = request.data.get('movie_title', 'Unknown Movie')
+        
+        if not rating:
+            return Response({'error': 'Rating is required'}, status=400)
+            
+        try:
+            rating = int(rating)
+            if rating < 1 or rating > 5:
+                raise ValueError
+        except ValueError:
+            return Response({'error': 'Rating must be an integer between 1 and 5'}, status=400)
+            
+        # Create or update review
+        review, created = Review.objects.update_or_create(
+            user=user,
+            movie_id=movie_id,
+            defaults={
+                'movie_title': movie_title,
+                'rating': rating,
+                'comment': comment
+            }
+        )
+        return Response({'message': 'Review saved successfully!', 'review_id': review.id})
+        
+    if request.method == 'DELETE':
+        try:
+            review = Review.objects.get(user=user, movie_id=movie_id)
+            review.delete()
+            return Response({'message': 'Review deleted successfully!'})
+        except Review.DoesNotExist:
+            return Response({'error': 'Review not found'}, status=404)
 
 # ==========================================
 # MOVIE ENDPOINTS
