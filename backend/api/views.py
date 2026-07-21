@@ -1,5 +1,7 @@
 import os
 import pickle
+import json
+import google.generativeai as genai
 import pandas as pd
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -189,6 +191,53 @@ def handle_reviews(request, movie_id):
             return Response({'message': 'Review deleted successfully!'})
         except Review.DoesNotExist:
             return Response({'error': 'Review not found'}, status=404)
+
+# ==========================================
+# CHATBOT ENDPOINTS
+# ==========================================
+
+@api_view(['POST'])
+def chat_with_ai(request):
+    try:
+        user_message = request.data.get('message', '')
+        if not user_message:
+            return Response({'error': 'Message is required'}, status=400)
+            
+        gemini_api_key = os.environ.get('GEMINI_API_KEY') or getattr(settings, 'GEMINI_API_KEY', None)
+        
+        if not gemini_api_key:
+            # Fallback message if key is not configured
+            return Response({
+                'reply': "Oops! The AI is sleeping right now. Please add your GEMINI_API_KEY to the backend environment variables to wake it up."
+            })
+            
+        genai.configure(api_key=gemini_api_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # Prepare context about top movies
+        top_movies_list = []
+        if not movies.empty:
+            top_movies_list = movies.head(10)['title'].tolist()
+            
+        system_prompt = f"""
+You are CineSense AI, a helpful, enthusiastic movie recommendation assistant for a movie app called CineSense. 
+Keep your answers brief (1-3 sentences) and conversational.
+Some of the top movies currently in our database include: {', '.join(top_movies_list)}.
+If the user asks for a recommendation, try to suggest movies from our database if possible, or any popular movies.
+Always respond in a friendly tone. Use emojis!
+User's message: {user_message}
+"""
+        response = model.generate_content(system_prompt)
+        
+        return Response({
+            'reply': response.text
+        })
+        
+    except Exception as e:
+        print(f"Chatbot error: {e}")
+        return Response({
+            'reply': "Sorry, I'm having trouble connecting to my AI brain right now! Please try again later."
+        })
 
 # ==========================================
 # MOVIE ENDPOINTS

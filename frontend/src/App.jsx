@@ -6,6 +6,7 @@ import Profile from './pages/Profile';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import React, { useContext } from 'react';
+import Chatbot from './components/Chatbot';
 import './index.css';
 
 // Google Client ID - The user needs to provide this in frontend/.env!
@@ -50,6 +51,9 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/profile" element={<Profile />} />
             </Routes>
+            
+            {/* Global AI Chatbot */}
+            <Chatbot />
           </div>
         </Router>
       </AuthProvider>
