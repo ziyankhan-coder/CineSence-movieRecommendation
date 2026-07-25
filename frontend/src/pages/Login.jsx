@@ -43,13 +43,17 @@ function Login() {
 
     const handleGoogleSuccess = async (credentialResponse) => {
         try {
+            setLoading(true);
+            setError('');
             const res = await axios.post('http://127.0.0.1:8000/api/google-login/', {
                 token: credentialResponse.credential
             });
             login(res.data);
             navigate('/');
         } catch (err) {
-            setError('Google login failed');
+            setError(err.response?.data?.error || 'Google login failed. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
