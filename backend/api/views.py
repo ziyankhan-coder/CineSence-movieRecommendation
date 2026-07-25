@@ -72,7 +72,8 @@ def google_login(request):
     
     try:
         # Validate the token with Google
-        idinfo = id_token.verify_oauth2_token(token, requests.Request())
+        client_id = os.environ.get('GOOGLE_CLIENT_ID') or '600603644992-4m1j93of6dekc7j5s7q7jbe8phu0dduh.apps.googleusercontent.com'
+        idinfo = id_token.verify_oauth2_token(token, requests.Request(), client_id)
         email = idinfo['email']
         name = idinfo.get('name', '')
         
@@ -89,8 +90,12 @@ def google_login(request):
             'username': user.username,
             'email': user.email
         })
-    except ValueError:
-        return Response({'error': 'Invalid Google token'}, status=401)
+    except ValueError as e:
+        print("Google token validation error:", e)
+        return Response({'error': f'Invalid Google token: {e}'}, status=401)
+    except Exception as e:
+        print("Unexpected error in google_login:", e)
+        return Response({'error': 'An unexpected error occurred during Google login'}, status=500)
 
 # ==========================================
 # WATCHLIST ENDPOINTS
@@ -212,7 +217,7 @@ def chat_with_ai(request):
             })
             
         genai.configure(api_key=gemini_api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         
         # Prepare context about top movies
         top_movies_list = []

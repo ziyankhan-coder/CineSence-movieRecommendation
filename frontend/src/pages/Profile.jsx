@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import MovieCard from '../components/MovieCard';
 
@@ -50,26 +50,47 @@ function Profile() {
 
     if (loading || !user) return <div className="loading">Loading Profile...</div>;
 
+    // Get user initials for avatar
+    const getUserInitials = (name) => {
+        if (!name) return 'U';
+        return name.charAt(0).toUpperCase();
+    };
+
     return (
-        <div style={{ padding: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', paddingBottom: '1rem', borderBottom: '1px solid var(--text-muted)' }}>
-                <div>
-                    <h1 style={{ color: 'var(--primary)' }}>My Profile</h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '1.2rem' }}>Welcome, {user.username} 👋</p>
+        <div className="profile-container">
+            {/* Top Banner Card */}
+            <div className="profile-header-card">
+                <div className="profile-user-info">
+                    <div className="profile-avatar-large">
+                        {getUserInitials(user.username)}
+                    </div>
+                    <div className="profile-details">
+                        <h1>{user.username}</h1>
+                        <p>✨ VIP CineSense Member</p>
+                    </div>
                 </div>
-                <button 
-                    onClick={handleLogout}
-                    className="search-button" 
-                    style={{ backgroundColor: 'transparent', border: '1px solid #ff4c4c', color: '#ff4c4c' }}
-                >
-                    Logout
-                </button>
+
+                <div className="profile-stats">
+                    <div className="stat-box">
+                        <span className="stat-number">{watchlist.length}</span>
+                        <span className="stat-label">Watchlisted</span>
+                    </div>
+                    <button onClick={handleLogout} className="profile-logout-btn">
+                        <span>🚪</span> Logout
+                    </button>
+                </div>
             </div>
 
-            <h2 className="section-title">My Wishlist / Watchlist 📌</h2>
-            <div className="movie-grid">
-                {watchlist.length > 0 ? (
-                    watchlist.map((movie) => (
+            {/* Watchlist Section */}
+            <div className="profile-section-header">
+                <h2 className="profile-section-title">
+                    <span>📌</span> My Wishlist & Watchlist
+                </h2>
+            </div>
+
+            {watchlist.length > 0 ? (
+                <div className="movie-grid">
+                    {watchlist.map((movie) => (
                         <MovieCard 
                             key={movie.movie_id} 
                             movie={movie} 
@@ -77,11 +98,18 @@ function Profile() {
                             isWatchlisted={true} 
                             onToggleWatchlist={removeFromWatchlist} 
                         />
-                    ))
-                ) : (
-                    <p style={{ marginLeft: '4rem', color: 'var(--text-muted)' }}>Your watchlist is empty. Go find some movies!</p>
-                )}
-            </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="empty-watchlist-card">
+                    <span className="empty-icon">🎬</span>
+                    <h3>Your Watchlist is Empty</h3>
+                    <p>You haven't saved any movies to your watchlist yet. Start exploring and save movies you want to watch!</p>
+                    <Link to="/" className="explore-btn">
+                        Explore Movies Now
+                    </Link>
+                </div>
+            )}
         </div>
     );
 }
