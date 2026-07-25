@@ -9,13 +9,32 @@ function TrailerModal({ movie, onClose }) {
 
   useEffect(() => {
     if (!movie) return;
+    setLoading(true);
+    setError(false);
+    setTrailerId(null);
+
+    const fetchFallbackTrailer = () => {
+      axios.get(`http://127.0.0.1:8000/api/trailer/?title=${encodeURIComponent(movie.title)}`)
+        .then(res => {
+          if (res.data && res.data.video_id) {
+            setTrailerId(res.data.video_id);
+          } else {
+            setError(true);
+          }
+          setLoading(false);
+        })
+        .catch(err => {
+          console.error("Fallback trailer fetch failed:", err);
+          setError(true);
+          setLoading(false);
+        });
+    };
 
     const YOUTUBE_API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
     
     if (!YOUTUBE_API_KEY) {
-      console.error("YouTube API Key is missing in .env!");
-      setError(true);
-      setLoading(false);
+      // Use backend DuckDuckGo trailer scraper directly!
+      fetchFallbackTrailer();
       return;
     }
 
@@ -26,15 +45,14 @@ function TrailerModal({ movie, onClose }) {
       .then(res => {
         if (res.data.items && res.data.items.length > 0) {
           setTrailerId(res.data.items[0].id.videoId);
+          setLoading(false);
         } else {
-          setError(true);
+          fetchFallbackTrailer();
         }
-        setLoading(false);
       })
       .catch(err => {
-        console.error("Failed to load trailer from YouTube API", err);
-        setError(true);
-        setLoading(false);
+        console.warn("YouTube API quota exceeded or error, switching to backend fallback:", err);
+        fetchFallbackTrailer();
       });
   }, [movie]);
 

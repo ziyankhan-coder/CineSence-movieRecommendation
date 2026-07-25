@@ -212,37 +212,51 @@ def chat_with_ai(request):
         gemini_api_key = os.environ.get('GEMINI_API_KEY') or getattr(settings, 'GEMINI_API_KEY', None)
         
         if not gemini_api_key:
-            # Fallback message if key is not configured
             return Response({
-                'reply': "Oops! The AI is sleeping right now. Please add your GEMINI_API_KEY to the backend environment variables to wake it up."
+                'reply': "Oops! The AI is sleeping right now. Please add your GEMINI_API_KEY to the backend environment variables to wake it up.",
+                'movies': []
             })
             
         genai.configure(api_key=gemini_api_key)
         model = genai.GenerativeModel('gemini-2.5-flash')
         
-        # Prepare context about top movies
-        top_movies_list = []
-        if not movies.empty:
-            top_movies_list = movies.head(10)['title'].tolist()
-            
         system_prompt = f"""
-You are CineSense AI, a helpful, enthusiastic movie recommendation assistant for a movie app called CineSense. 
-Keep your answers brief (1-3 sentences) and conversational.
-Some of the top movies currently in our database include: {', '.join(top_movies_list)}.
-If the user asks for a recommendation, try to suggest movies from our database if possible, or any popular movies.
-Always respond in a friendly tone. Use emojis!
+You are CineSense AI, an enthusiastic, hyper-intelligent global movie recommendation assistant. You know ALL movies ever created (Hollywood, Bollywood, Tollywood, Korean cinema, Anime, South Indian, latest films, etc.).
+NEVER say you don't have a movie in your database. Always enthusiastically recommend amazing global movies matching the user's request!
+You MUST respond in strict JSON format with exactly two properties:
+1. "reply": A friendly, conversational 2-4 sentence response in english/hindi mix (if appropriate) with emojis.
+2. "movies": An array of up to 4 recommended movie objects matching the user's request. Each object must have:
+   - "title": exact official movie title (e.g. "Raaz" or "Murder 2" or "Pathaan" or "The Conjuring")
+   - "year": release year as string (e.g. "2002")
+   - "genres": string (e.g. "Horror, Romance")
+   - "overview": brief 1-2 sentence plot summary
+   - "rating": float between 7.0 and 9.5
+   - "movie_id": integer (generate a random 6-digit integer between 100000 and 999999)
+
 User's message: {user_message}
+Return ONLY valid JSON without markdown formatting or code backticks! Example format:
+{{"reply": "Here are some spooky Bollywood horror movies for you! 👻", "movies": [{{"title": "Raaz", "year": "2002", "genres": "Horror, Romance", "overview": "A couple moves to Ooty...", "rating": 7.5, "movie_id": 847291}}]}}
 """
         response = model.generate_content(system_prompt)
+        clean_text = response.text.strip().replace('```json', '').replace('```', '').strip()
         
-        return Response({
-            'reply': response.text
-        })
+        try:
+            data = json.loads(clean_text)
+            return Response({
+                'reply': data.get('reply', clean_text),
+                'movies': data.get('movies', [])
+            })
+        except Exception as json_err:
+            return Response({
+                'reply': clean_text,
+                'movies': []
+            })
         
     except Exception as e:
         print(f"Chatbot error: {e}")
         return Response({
-            'reply': "Sorry, I'm having trouble connecting to my AI brain right now! Please try again later."
+            'reply': "Sorry, I'm having trouble connecting to my AI brain right now! Please try again later.",
+            'movies': []
         })
 
 # ==========================================
@@ -400,7 +414,45 @@ def mood_search(request):
         results.append({
             'movie_id': int(row['movie_id']),
             'title': row['title'],
-            'match_score': row['mood_score']
+            'match_score': int(row['mood_score']),
+            'overview': str(row.get('overview', '')),
+            'genres': str(row.get('genres', '')),
+            'rating': float(row.get('vote_average', 7.5)) if 'vote_average' in row else 7.5
         })
+        
+    # GEMINI AI GLOBAL BOOSTER: If local matches < 8 or if we want dynamic Bollywood/world cinema coverage
+    gemini_api_key = os.environ.get('GEMINI_API_KEY') or getattr(settings, 'GEMINI_API_KEY', None)
+    if len(results) < 8 and gemini_api_key:
+        try:
+            genai.configure(api_key=gemini_api_key)
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            prompt = f"""
+The user searched for movie mood/keyword: "{query_str}".
+Return a JSON array of up to 8 real global movie objects (Hollywood, Bollywood, Korean, etc.) matching this query.
+Each object must have:
+- "title": Exact official movie title (e.g. "Murder 2", "Raaz", "Stree", "Krrish", "Pathaan")
+- "match_score": integer (between 85 and 99)
+- "overview": brief 1-2 sentence plot
+- "genres": string (e.g. "Thriller, Horror")
+- "rating": float (e.g. 7.5)
+- "movie_id": integer (random 6-digit number between 100000 and 999999)
+
+Return ONLY valid JSON array without markdown formatting or code backticks! Example: [{{"title": "Murder 2", "match_score": 95, "overview": "A former police officer...", "genres": "Thriller, Horror", "rating": 7.2, "movie_id": 841293}}]
+"""
+            ai_resp = model.generate_content(prompt)
+            clean_text = ai_resp.text.strip().replace('```json', '').replace('```', '').strip()
+            ai_movies = json.loads(clean_text)
+            for m in ai_movies:
+                if not any(r['title'].lower() == m['title'].lower() for r in results):
+                    results.append({
+                        'movie_id': int(m.get('movie_id', 500000)),
+                        'title': m['title'],
+                        'match_score': int(m.get('match_score', 90)),
+                        'overview': m.get('overview', ''),
+                        'genres': m.get('genres', 'Feature Film'),
+                        'rating': float(m.get('rating', 7.5))
+                    })
+        except Exception as e:
+            print(f"Gemini mood search augmentation error: {e}")
         
     return Response(results)
