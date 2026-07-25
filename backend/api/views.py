@@ -351,6 +351,25 @@ def recommend(request):
             
         return Response(recommended_movies)
     except IndexError:
+        # GEMINI AI SIMILARITY FALLBACK: For Bollywood / Global cinema not in offline dataset
+        gemini_api_key = os.environ.get('GEMINI_API_KEY') or getattr(settings, 'GEMINI_API_KEY', None)
+        if gemini_api_key:
+            try:
+                genai.configure(api_key=gemini_api_key)
+                model = genai.GenerativeModel('gemini-2.5-flash')
+                prompt = f"""
+The user wants 5 movies similar to "{movie_title}" from global cinema (Hollywood, Bollywood, Tollywood, Korean, etc.).
+Return ONLY a valid JSON array of 5 movie objects. Each object must have:
+- "title": exact official movie title (e.g. "Stree" or "Bhool Bhulaiyaa" or "The Nun")
+- "movie_id": random 6-digit integer between 100000 and 999999
+
+Example: [{{"title": "Stree", "movie_id": 841923}}]
+"""
+                ai_resp = model.generate_content(prompt)
+                clean_text = ai_resp.text.strip().replace('```json', '').replace('```', '').strip()
+                return Response(json.loads(clean_text))
+            except Exception as e:
+                print(f"Gemini similarity fallback error: {e}")
         return Response({'error': 'Movie not found in our database.'}, status=404)
 
 @api_view(['GET'])
