@@ -1,4 +1,5 @@
 import os
+import re
 import pickle
 import json
 import google.generativeai as genai
@@ -344,35 +345,55 @@ def mood_search(request):
     AI Mood Search: Matches user natural language text (e.g. 'I want to watch action and aliens')
     to the movie tags (genres + keywords + overview) to find relevant movies.
     """
-    query = request.GET.get('q', '').lower().split()
-    
-    if not query:
+    query_str = request.GET.get('q', '').strip().lower()
+    if not query_str:
         return Response({'error': 'Please provide a search query.'}, status=400)
+        
+    query_words = query_str.split()
     
-    # HYBRID SEARCH: Check for exact/partial Title match first
-    # If the user typed a movie name (e.g. "krrish" or "avatar"), it gets a massive bonus score
+    # Common stop words and trivial numbers/hindi filler words that match almost everything
+    stop_words = {
+        'i', 'me', 'my', 'myself', 'we', 'our', 'you', 'your', 'he', 'him', 'his', 'she', 'her', 'it', 'its', 'they', 'them', 'their',
+        'what', 'which', 'who', 'whom', 'this', 'that', 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+        'have', 'has', 'had', 'having', 'do', 'does', 'did', 'doing', 'a', 'an', 'the', 'and', 'but', 'if', 'or', 'because', 'as',
+        'until', 'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against', 'between', 'into', 'through', 'during', 'before',
+        'after', 'above', 'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over', 'under', 'again', 'further', 'then',
+        'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most', 'other', 'some',
+        'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just', 'don',
+        'should', 'now', 'want', 'watch', 'like', 'show', 'movie', 'movies', 'film', 'films', 'feel', 'feeling', 'today', 'good',
+        'best', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'ki', 'ka', 'ke', 'ko', 'se', 'me', 'mai', 'hai', 'hain', 'ho',
+        'hi', 'bhai', 'yaar', 'wal', 'wali', 'wala', 'bollywod', 'bollywood', 'hollywood'
+    }
+    
+    # Filter query words for NLP matching (keep words > 2 chars that are not stop words)
+    meaningful_words = [w for w in query_words if w not in stop_words and len(w) > 2]
+    
     def score_movie(row):
         score = 0
         movie_title = str(row['title']).lower()
-        query_str = " ".join(query)
+        tags_str = str(row['tags']).lower()
         
-        # Title match (Highest Priority)
+        # Exact Title match (Highest Priority)
         if query_str == movie_title:
             score += 100
         elif query_str in movie_title:
             score += 50
+        elif any(w == movie_title for w in query_words if len(w) > 2):
+            score += 40
             
-        # NLP Tags match (Mood)
-        for word in query:
-            if word in str(row['tags']):
-                score += 1
+        # NLP Tags match (Mood) - use whole word boundary matching
+        for word in meaningful_words:
+            if re.search(r'\b' + re.escape(word) + r'\b', tags_str):
+                score += 5
+            elif re.search(r'\b' + re.escape(word) + r'\b', movie_title):
+                score += 10
                 
         return score
         
     movies['mood_score'] = movies.apply(score_movie, axis=1)
     
-    # Sort movies by score (descending) and get the ones with a score > 0
-    best_matches = movies[movies['mood_score'] > 0].sort_values(by='mood_score', ascending=False)
+    # Sort movies by score (descending). Only return movies that got at least 5 points (meaningful match or title match)
+    best_matches = movies[movies['mood_score'] >= 5].sort_values(by='mood_score', ascending=False)
     
     results = []
     for _, row in best_matches.head(15).iterrows():

@@ -86,7 +86,14 @@ function MoodSearch() {
             className="search-input"
             placeholder="Type your mood..." 
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setQuery(val);
+              if (!val.trim()) {
+                setSearched(false);
+                setResults([]);
+              }
+            }}
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
           <button className="search-button" onClick={handleSearch}>
@@ -97,7 +104,7 @@ function MoodSearch() {
 
       {loading && <div className="loading">AI is analyzing your mood...</div>}
 
-      {!loading && searched && (
+      {!loading && searched && query.trim() && (
         <>
           <h2 className="section-title">AI Matches for "{query}"</h2>
           {results.length > 0 ? (
@@ -113,7 +120,11 @@ function MoodSearch() {
               ))}
             </div>
           ) : (
-            <p style={{ marginLeft: '5%', color: 'var(--text-muted)' }}>No perfect match found. Try different words!</p>
+            <div className="empty-watchlist-card" style={{ maxWidth: '800px', margin: '2rem auto' }}>
+              <span className="empty-icon">🤖🔍</span>
+              <h3>No Exact Match in Offline Database</h3>
+              <p>We couldn't find a direct match for "{query}" in our curated TMDB movie database. Try broader keywords like "action", "sci-fi", "thriller", or ask our <strong>live AI Assistant</strong> (floating button in the bottom right corner) for unlimited global recommendations including Bollywood and obscure titles!</p>
+            </div>
           )}
         </>
       )}
