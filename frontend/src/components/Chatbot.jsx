@@ -1,13 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
 import axios from 'axios';
 import TrailerModal from './TrailerModal';
+import { AuthContext } from '../context/AuthContext';
 import './Chatbot.css';
 
 function Chatbot() {
+    const { user } = useContext(AuthContext);
     const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState([
-        { text: "Hi! I'm CineSense AI 🤖. Ask me for ANY global, Hollywood, or Bollywood movie recommendation!", isBot: true, movies: [] }
-    ]);
+    const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [selectedMovie, setSelectedMovie] = useState(null);
@@ -23,9 +23,43 @@ function Chatbot() {
         }
     }, [messages, isOpen]);
 
+    // Isolate chats per user or show login prompt when not logged in
+    useEffect(() => {
+        if (!user) {
+            setMessages([
+                { 
+                    text: "🔒 Please log in to chat with CineSense AI, save your chat history, and get personalized movie recommendations!", 
+                    isBot: true, 
+                    movies: [], 
+                    isLocked: true 
+                }
+            ]);
+        } else {
+            const savedChat = localStorage.getItem(`cinesense_chat_${user.username}`);
+            if (savedChat) {
+                try {
+                    setMessages(JSON.parse(savedChat));
+                } catch (e) {
+                    setMessages([{ text: `Hi ${user.username}! I'm CineSense AI 🤖. Ask me for ANY global, Hollywood, or Bollywood movie recommendation!`, isBot: true, movies: [] }]);
+                }
+            } else {
+                setMessages([
+                    { text: `Hi ${user.username}! I'm CineSense AI 🤖. Ask me for ANY global, Hollywood, or Bollywood movie recommendation!`, isBot: true, movies: [] }
+                ]);
+            }
+        }
+    }, [user]);
+
+    // Save chat history whenever messages change for the logged-in user
+    useEffect(() => {
+        if (user && messages.length > 0 && !messages[0].isLocked) {
+            localStorage.setItem(`cinesense_chat_${user.username}`, JSON.stringify(messages));
+        }
+    }, [messages, user]);
+
     const handleSend = async (e) => {
         e.preventDefault();
-        if (!input.trim()) return;
+        if (!input.trim() || !user) return;
 
         const userMessage = input.trim();
         setInput('');
@@ -68,7 +102,7 @@ function Chatbot() {
                             <span className="chatbot-avatar">🤖</span>
                             <div>
                                 <h4>CineSense AI</h4>
-                                <span className="status">Online</span>
+                                <span className="status">{user ? `Online (${user.username})` : 'Login Required'}</span>
                             </div>
                         </div>
                     </div>
@@ -78,6 +112,13 @@ function Chatbot() {
                             <div key={index} className={`message-wrapper ${msg.isBot ? 'bot' : 'user'}`} style={{ flexDirection: 'column', alignItems: msg.isBot ? 'flex-start' : 'flex-end' }}>
                                 <div className="message-bubble">
                                     {msg.text}
+                                    {msg.isLocked && (
+                                        <div style={{ marginTop: '12px' }}>
+                                            <a href="/login" style={{ display: 'inline-block', background: '#e50914', color: '#fff', padding: '8px 14px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '13px', boxShadow: '0 2px 8px rgba(229, 9, 20, 0.4)' }}>
+                                                Log In Now ➤
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
                                 {msg.movies && msg.movies.length > 0 && (
                                     <div className="chatbot-movie-suggestions">
@@ -106,10 +147,10 @@ function Chatbot() {
                             type="text" 
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask for a movie..."
-                            disabled={isLoading}
+                            placeholder={!user ? "Please login to chat..." : "Ask for a movie..."}
+                            disabled={isLoading || !user}
                         />
-                        <button type="submit" disabled={isLoading || !input.trim()}>
+                        <button type="submit" disabled={isLoading || !input.trim() || !user}>
                             ➤
                         </button>
                     </form>

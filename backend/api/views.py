@@ -51,8 +51,9 @@ def register(request):
 def login(request):
     data = request.data
     try:
-        user = User.objects.get(username=data['username'])
-        if user.check_password(data['password']):
+        username_clean = str(data.get('username', '')).strip()
+        user = User.objects.get(username__iexact=username_clean)
+        if user.check_password(data.get('password', '')):
             refresh = RefreshToken.for_user(user)
             return Response({
                 'refresh': str(refresh),
@@ -63,7 +64,7 @@ def login(request):
         else:
             return Response({'error': 'Invalid credentials'}, status=401)
     except User.DoesNotExist:
-        return Response({'error': 'User not found'}, status=404)
+        return Response({'error': 'User not found. Please check your username.'}, status=404)
 
 @api_view(['POST'])
 def google_login(request):

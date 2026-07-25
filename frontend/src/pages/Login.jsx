@@ -8,28 +8,36 @@ function Login() {
     const [isLogin, setIsLogin] = useState(true);
     const [formData, setFormData] = useState({ username: '', email: '', password: '' });
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const { login } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setLoading(true);
         
         try {
             if (isLogin) {
                 const res = await axios.post('http://127.0.0.1:8000/api/login/', {
-                    username: formData.username,
+                    username: formData.username.trim(),
                     password: formData.password
                 });
                 login(res.data);
                 navigate('/');
             } else {
-                await axios.post('http://127.0.0.1:8000/api/register/', formData);
+                await axios.post('http://127.0.0.1:8000/api/register/', {
+                    username: formData.username.trim(),
+                    email: formData.email.trim(),
+                    password: formData.password
+                });
                 setIsLogin(true); // Switch to login after successful register
                 setError('Registration successful! Please login.');
             }
         } catch (err) {
-            setError(err.response?.data?.error || 'An error occurred');
+            setError(err.response?.data?.error || 'An error occurred. Please try again.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -84,8 +92,8 @@ function Login() {
                     required 
                 />
                 
-                <button type="submit" className="search-button" style={{ borderRadius: '8px', padding: '12px' }}>
-                    {isLogin ? 'Login' : 'Sign Up'}
+                <button type="submit" className="search-button" style={{ borderRadius: '8px', padding: '12px' }} disabled={loading}>
+                    {loading ? 'Please wait...' : (isLogin ? 'Login' : 'Sign Up')}
                 </button>
             </form>
             
