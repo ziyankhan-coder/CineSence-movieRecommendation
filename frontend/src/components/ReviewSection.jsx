@@ -21,7 +21,7 @@ function ReviewSection({ movie }) {
     const fetchReviews = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`http://127.0.0.1:8000/api/reviews/${movie.movie_id}/`);
+            const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/reviews/${movie.movie_id}/`);
             setReviewsData(response.data);
             
             // If user is logged in, check if they already reviewed this movie and pre-fill form
@@ -57,7 +57,7 @@ function ReviewSection({ movie }) {
         setError(null);
         
         try {
-            await axios.post(`http://127.0.0.1:8000/api/reviews/${movie.movie_id}/`, {
+            await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/reviews/${movie.movie_id}/`, {
                 rating: rating,
                 comment: comment,
                 movie_title: movie.title

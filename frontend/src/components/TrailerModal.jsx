@@ -14,7 +14,7 @@ function TrailerModal({ movie, onClose }) {
     setTrailerId(null);
 
     const fetchFallbackTrailer = () => {
-      axios.get(`http://127.0.0.1:8000/api/trailer/?title=${encodeURIComponent(movie.title)}`)
+      axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/trailer/?title=${encodeURIComponent(movie.title)}`)
         .then(res => {
           if (res.data && res.data.video_id) {
             setTrailerId(res.data.video_id);

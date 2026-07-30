@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
             (config) => {
                 const token = localStorage.getItem('access_token');
                 // Only add the token for requests to our own backend API to avoid CORS issues with 3rd party APIs (like OMDB)
-                if (token && config.url.includes('127.0.0.1:8000')) {
+                if (token && config.url.includes('127.0.0.1:8000') || (import.meta.env.VITE_API_BASE_URL && config.url.includes(import.meta.env.VITE_API_BASE_URL))) {
                     config.headers['Authorization'] = `Bearer ${token}`;
                 }
                 return config;

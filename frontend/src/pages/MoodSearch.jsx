@@ -32,7 +32,7 @@ function MoodSearch() {
     setSearched(true);
     
     // Call the Mood Search API
-    axios.get(`http://127.0.0.1:8000/api/mood-search/?q=${query}`)
+    axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/mood-search/?q=${query}`)
       .then(response => {
         setResults(response.data);
         setLoading(false);
@@ -60,7 +60,7 @@ function MoodSearch() {
     
     if (user) {
       try {
-        await axios.post('http://127.0.0.1:8000/api/watchlist/', {
+        await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/watchlist/`, {
           movie_id: movie.movie_id,
           title: movie.title
         });

@@ -29,7 +29,7 @@ function Home() {
   useEffect(() => {
     // Load Watchlist
     if (user) {
-      axios.get('http://127.0.0.1:8000/api/watchlist/')
+      axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/watchlist/`)
         .then(res => setWatchlist(res.data))
         .catch(err => console.error("Error fetching watchlist:", err));
     } else {
@@ -39,11 +39,11 @@ function Home() {
 
     // Fetch All Categories
     Promise.all([
-      axios.get('http://127.0.0.1:8000/api/movies/'),
-      axios.get('http://127.0.0.1:8000/api/bollywood/'),
-      axios.get('http://127.0.0.1:8000/api/action/'),
-      axios.get('http://127.0.0.1:8000/api/scifi/'),
-      axios.get('http://127.0.0.1:8000/api/comedy/')
+      axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/movies/`),
+      axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/bollywood/`),
+      axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/action/`),
+      axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/scifi/`),
+      axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/comedy/`)
     ]).then(([resMovies, resBolly, resAction, resScifi, resComedy]) => {
       setMovies(resMovies.data);
       setBollywood(resBolly.data);
@@ -73,7 +73,7 @@ function Home() {
     if (user) {
       // Sync with Backend
       try {
-        await axios.post('http://127.0.0.1:8000/api/watchlist/', {
+        await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/watchlist/`, {
           movie_id: movie.movie_id,
           title: movie.title
         });
@@ -93,7 +93,7 @@ function Home() {
     setRecommendations([]); // clear old recommendations
     
     // Call our Django ML API
-    axios.get(`http://127.0.0.1:8000/api/recommend/?title=${movie.title}`)
+    axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/recommend/?title=${movie.title}`)
       .then(response => {
         setRecommendations(response.data);
       })

@@ -19,14 +19,14 @@ function Login() {
         
         try {
             if (isLogin) {
-                const res = await axios.post('http://127.0.0.1:8000/api/login/', {
+                const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/login/`, {
                     username: formData.username.trim(),
                     password: formData.password
                 });
                 login(res.data);
                 navigate('/');
             } else {
-                await axios.post('http://127.0.0.1:8000/api/register/', {
+                await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/register/`, {
                     username: formData.username.trim(),
                     email: formData.email.trim(),
                     password: formData.password
@@ -45,7 +45,7 @@ function Login() {
         try {
             setLoading(true);
             setError('');
-            const res = await axios.post('http://127.0.0.1:8000/api/google-login/', {
+            const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/google-login/`, {
                 token: credentialResponse.credential
             });
             login(res.data);

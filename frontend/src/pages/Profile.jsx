@@ -23,7 +23,7 @@ function Profile() {
 
     const fetchWatchlist = async () => {
         try {
-            const res = await axios.get('http://127.0.0.1:8000/api/watchlist/');
+            const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/watchlist/`);
             setWatchlist(res.data);
         } catch (error) {
             console.error("Error fetching watchlist", error);
@@ -37,7 +37,7 @@ function Profile() {
 
     const removeFromWatchlist = async (movie) => {
         try {
-            await axios.post('http://127.0.0.1:8000/api/watchlist/', {
+            await axios.post(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/watchlist/`, {
                 movie_id: movie.movie_id,
                 title: movie.title
             });
