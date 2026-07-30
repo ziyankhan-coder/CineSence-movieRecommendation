@@ -3,6 +3,7 @@ import re
 import pickle
 import json
 import base64
+import gzip
 import google.generativeai as genai
 import pandas as pd
 from rest_framework.decorators import api_view, permission_classes
@@ -19,16 +20,31 @@ from duckduckgo_search import DDGS
 
 # Load models into memory when the server starts
 BASE_DIR = settings.BASE_DIR
+movies = pd.DataFrame()
+raw_movies = pd.DataFrame()
+similarity = []
+
 try:
     movies_dict = pickle.load(open(os.path.join(BASE_DIR, 'movies_dict.pkl'), 'rb'))
     movies = pd.DataFrame(movies_dict)
-    similarity = pickle.load(open(os.path.join(BASE_DIR, 'similarity.pkl'), 'rb'))
     raw_movies = pd.read_csv(os.path.join(BASE_DIR, 'data', 'tmdb_5000_movies.csv'))
-    print("AI Models loaded successfully!")
+    print("Movies database loaded successfully!")
 except Exception as e:
-    print(f"Error loading ML models: {e}")
-    similarity = []
-    raw_movies = pd.DataFrame()
+    print(f"Error loading movies dict: {e}")
+
+try:
+    gz_path = os.path.join(BASE_DIR, 'similarity.pkl.gz')
+    pkl_path = os.path.join(BASE_DIR, 'similarity.pkl')
+    
+    if os.path.exists(gz_path):
+        with gzip.open(gz_path, 'rb') as f:
+            similarity = pickle.load(f)
+    else:
+        with open(pkl_path, 'rb') as f:
+            similarity = pickle.load(f)
+    print("Similarity Matrix loaded successfully!")
+except Exception as e:
+    print(f"Similarity matrix not found, using Gemini fallback for recommendations. Error: {e}")
 
 # ==========================================
 # AUTHENTICATION ENDPOINTS
