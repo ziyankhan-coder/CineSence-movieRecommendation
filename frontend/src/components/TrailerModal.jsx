@@ -65,8 +65,15 @@ function TrailerModal({ movie, onClose }) {
         
         <div className="video-container">
           {loading && <div className="loading" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading Trailer...</div>}
-          {error && <div className="error" style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Could not find trailer</div>}
-          {trailerId ? (
+          {error && !loading && (
+            <div className="trailer-not-found">
+                <span className="error-icon">🎬</span>
+                <h3>Trailer Not Available</h3>
+                <p>We couldn't find a trailer for "{movie.title}".</p>
+                <p className="sub-error">You can still check out the reviews below or watch it on your favorite streaming platform.</p>
+            </div>
+          )}
+          {trailerId && !loading && !error && (
             <iframe 
               width="100%" 
               height="100%" 
@@ -76,13 +83,6 @@ function TrailerModal({ movie, onClose }) {
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
               allowFullScreen>
             </iframe>
-          ) : (
-            <div className="trailer-not-found">
-              <span className="error-icon">🎬</span>
-              <h3>Trailer Not Available</h3>
-              <p>We couldn't find a trailer for "{movie.title}".</p>
-              <p className="sub-error">You can still check out the reviews below or watch it on your favorite streaming platform.</p>
-            </div>
           )}
         </div>
         
