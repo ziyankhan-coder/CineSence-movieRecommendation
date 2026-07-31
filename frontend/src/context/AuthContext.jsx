@@ -51,7 +51,8 @@ export const AuthProvider = ({ children }) => {
         const responseInterceptor = axios.interceptors.response.use(
             (response) => response,
             (error) => {
-                if (error.response && error.response.status === 401) {
+                const isOwnBackend = error.config && (error.config.url.includes('127.0.0.1:8000') || (import.meta.env.VITE_API_BASE_URL && error.config.url.includes(import.meta.env.VITE_API_BASE_URL)));
+                if (isOwnBackend && error.response && error.response.status === 401) {
                     // Token is expired or invalid. Clear it!
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('refresh_token');
