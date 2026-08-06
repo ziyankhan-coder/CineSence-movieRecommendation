@@ -1,3 +1,5 @@
+@import './mobile.css';
+
 :root {
   --bg-dark: #07070a; /* Very deep dark space color */
   --bg-card: #121319;
