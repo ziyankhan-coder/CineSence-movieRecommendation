@@ -60,12 +60,35 @@
     padding: 15px 20px;
     background: rgba(0, 0, 0, 0.3);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .chatbot-header-info {
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.chatbot-close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: white;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.chatbot-close-btn:hover {
+    background: #e50914;
 }
 
 .chatbot-avatar {
@@ -277,15 +300,22 @@
         bottom: 0;
         right: 0;
         left: 0;
+        top: 0;
         width: 100%;
         height: 100%;
         margin-bottom: 0;
         border-radius: 0;
-        z-index: 9999;
+        z-index: 9998;
     }
-    
+
+    /* Hide toggle button when chat is open (use in-header close btn instead) */
+    .chatbot-container.open .chatbot-toggle {
+        display: none;
+    }
+
     .chatbot-container {
         bottom: 20px;
         right: 20px;
+        z-index: 9999;
     }
 }

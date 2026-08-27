@@ -105,6 +105,7 @@ function Chatbot() {
                                 <span className="status">{user ? `Online (${user.username})` : 'Login Required'}</span>
                             </div>
                         </div>
+                        <button className="chatbot-close-btn" onClick={() => setIsOpen(false)}>✕</button>
                     </div>
                     
                     <div className="chatbot-messages">
